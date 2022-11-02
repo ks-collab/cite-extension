@@ -1,0 +1,3 @@
+[submodule "src/dist/SingleFile-Lite"]
+	path = src/dist/SingleFile-Lite
+	url = https://github.com/gildas-lormeau/SingleFile-Lite.git
