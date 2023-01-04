@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+web-ext run -s ./build
