@@ -11,6 +11,7 @@ const Popup = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AccessTokenResponse | undefined>(undefined);
 
+
   useEffect(() => {
     console.log("Popup rendered");
     chrome.storage?.local.get(["user"], ({ user }) => {

@@ -132,7 +132,7 @@ const UserBar = ({
             <ExitToAppIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="body2">Go to Project</Typography>
+            <Typography variant="body2">Go to Workspaces</Typography>
           </ListItemText>
         </MenuItem>
       </Menu>

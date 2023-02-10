@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -19,12 +19,17 @@ import {
   DocumentCollection,
   Organization,
   OrganizationList,
+  SauceReference,
 } from "models/api/response.types";
 import { ChromeMessage, Sender } from "types";
 import baseUrl, { portUrl } from "utils/baseUrl";
 import MenuListComposition from "./MenuListComposition";
 import TreeViewComposition from "./TreeViewComposition";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import Cite from "citation-js";
+import axios from "axios";
+import { parseBibTeX } from "utils/bibtex";
+import { v4 as uuidv4 } from "uuid";
 
 const PREFIX = "Home";
 const classes = {
@@ -143,6 +148,8 @@ const Home = () => {
     (collection) => !defaultCollectionsTypes.includes(collection.name)
   );
 
+  const referenceMetaRef = useRef<{[k: string]: any} | null>(null)
+
   useEffect(() => {
     chrome.storage.local.get(["user"], ({ user }) => {
       if (user) {
@@ -188,6 +195,7 @@ const Home = () => {
         });
       }
     });
+
     const message: ChromeMessage = {
       from: Sender.React,
       action: "detect pdf",
@@ -201,6 +209,22 @@ const Home = () => {
     chrome.tabs &&
       chrome.tabs.query(queryInfo, (tabs) => {
         const currentTabId = tabs[0].id as number;
+        const currentTabUrl = tabs[0].url as string;
+        axios.post("https://cite.petal-dev.org/api/citegen/query", {type: "article", query: currentTabUrl})
+          .then((res) => {
+          const { items } = res.data;
+          const cslData = items[0].csljson;
+          const cite = new Cite(cslData);
+          const bibtexItem = cite.format("bibtex", { format: "text" }); // proper bibtex string
+          const result = parseBibTeX(bibtexItem)
+          const referenceMeta = {
+              ...result[0].properties,
+              citekey: result[0].citekey,
+              entrytype: result[0].entrytype,
+          };
+          console.log(referenceMeta)
+          referenceMetaRef.current = referenceMeta;
+        })
         chrome.tabs.sendMessage(currentTabId, message, (response) => {
           if (response !== "pdf" && response !== "html") {
             if (isFirefox) {
@@ -268,9 +292,27 @@ const Home = () => {
       reset();
       sendSaveWebPageMessage();
     } else if (upload === "completed") {
-      window.open(`${portUrl}/browse`, "_blank");
+      window.open(`${portUrl}/browse/?organizationId=${selectedOrganization?.id}`, "_blank");
     } else {
-      sendSaveWebPageMessage();
+      if (referenceMetaRef.current) {
+        const { entrytype } = referenceMetaRef.current;
+        if (entrytype === "misc") {
+          sendSaveWebPageMessage();
+        } else {
+          setCapture("completed");
+          setProcess("completed");
+          setUpload("started");
+          axios.post(`${baseUrl}/api/document/create_stubs`, {
+            organization_id: selectedOrganization?.id,
+            stubs: [{ meta_json: JSON.stringify(referenceMetaRef.current)}]
+          }).then((res) => {
+            setUploadProgress(100)
+            setUpload("completed");
+          }).catch((err) => {
+            setUpload("error");
+          })
+        }
+      }
     }
   };
 
@@ -315,6 +357,10 @@ const Home = () => {
                   );
                   formData.append("file", file, filename);
                   formData.append("doctype", "html");
+
+                  if (referenceMetaRef && referenceMetaRef.current) {
+                    formData.append("meta_json", JSON.stringify(referenceMetaRef.current));
+                  }
 
                   const uploadXhr = new XMLHttpRequest();
                   uploadXhr.open("POST", `${baseUrl}/api/document/create`);
@@ -535,7 +581,7 @@ const Home = () => {
             sx={{ my: "auto", mr: "0.5rem", width: "125px" }}
           >
             {" "}
-            Organization:{" "}
+            Workspace:{" "}
           </Typography>
           <DropDownWrapper>
             <MenuListComposition
@@ -605,7 +651,7 @@ const Home = () => {
             </Typography>
             <Button
               onClick={() => {
-                window.open(`${portUrl}/browse`, "_blank");
+                window.open(`${portUrl}/browse/organizationId=${selectedOrganization?.id}`, "_blank");
               }}
               variant="contained"
               disableElevation
