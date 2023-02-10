@@ -2,7 +2,7 @@
   "name": "Petal Cite Web Importer",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjHvxYKsFLOCCsqG/ed3d/BP5gZVCd41lisdlE/1mG2UVNI7e8CBTvrk1Wu6aRUSvpnAHBqHVquCMZx21Deq+AAW7GGp/HRi1xqDc7JE7O4ZHoc0qAOqwj+F4yMqiM+LOPP6RCWz/9Pp36TKz5dVAartGxFWDDwwEnnzldgyBNmLyzFNTQHWlpMzehvu+VwIxEscoBJdFae3q2wB9FMyTxGKhIIt9mHsrydlYy1646+K+hEt6Oy5ehQbEg17kfmDr4BVw3jgwGfb/WX/mkkkAswSCOMFPMqSkdCOw2s3fGIxuj+H7mjCy1M07Dov64DVUloXzHtVGsFVZ367MLABpQQIDAQAB",
   "description": "Save PDFs and capture web pages directly to your Petal Cite library.",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "manifest_version": 2,
   "browser_action": {
     "default_popup": "index.html",
