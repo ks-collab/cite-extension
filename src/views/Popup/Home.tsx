@@ -651,7 +651,7 @@ const Home = () => {
             </Typography>
             <Button
               onClick={() => {
-                window.open(`${portUrl}/browse/organizationId=${selectedOrganization?.id}`, "_blank");
+                window.open(`${portUrl}/browse/?organizationId=${selectedOrganization?.id}`, "_blank");
               }}
               variant="contained"
               disableElevation
