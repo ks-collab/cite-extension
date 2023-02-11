@@ -29,7 +29,6 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import Cite from "citation-js";
 import axios from "axios";
 import { parseBibTeX } from "utils/bibtex";
-import { v4 as uuidv4 } from "uuid";
 
 const PREFIX = "Home";
 const classes = {
@@ -287,32 +286,15 @@ const Home = () => {
       });
   };
 
-  const handleSaveWebPage = () => {
+  const handleSaveWebPage = async () => {
+    console.log("in handle save web page")
     if (stopOnError) {
       reset();
       sendSaveWebPageMessage();
     } else if (upload === "completed") {
       window.open(`${portUrl}/browse/?organizationId=${selectedOrganization?.id}`, "_blank");
     } else {
-      if (referenceMetaRef.current) {
-        const { entrytype } = referenceMetaRef.current;
-        if (entrytype === "misc") {
-          sendSaveWebPageMessage();
-        } else {
-          setCapture("completed");
-          setProcess("completed");
-          setUpload("started");
-          axios.post(`${baseUrl}/api/document/create_stubs`, {
-            organization_id: selectedOrganization?.id,
-            stubs: [{ meta_json: JSON.stringify(referenceMetaRef.current)}]
-          }).then((res) => {
-            setUploadProgress(100)
-            setUpload("completed");
-          }).catch((err) => {
-            setUpload("error");
-          })
-        }
-      }
+      sendSaveWebPageMessage();
     }
   };
 
@@ -418,7 +400,7 @@ const Home = () => {
       reset();
       sendUploadPdfMessage();
     } else if (upload === "completed") {
-      window.open(`${portUrl}/browse`, "_blank");
+      window.open(`${portUrl}/browse?organizationId=${selectedOrganization?.id}`, "_blank");
     } else {
       sendUploadPdfMessage();
     }
@@ -540,6 +522,9 @@ const Home = () => {
       return "View in App";
     }
     if (stopOnError) {
+      if (errorMessage === "Document already exists") {
+        return "View in App";
+      }
       return "Retry";
     }
     return defaultButton;
