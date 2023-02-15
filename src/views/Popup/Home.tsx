@@ -19,7 +19,6 @@ import {
   DocumentCollection,
   Organization,
   OrganizationList,
-  SauceReference,
 } from "models/api/response.types";
 import { ChromeMessage, Sender } from "types";
 import baseUrl, { portUrl } from "utils/baseUrl";
@@ -140,6 +139,8 @@ const Home = () => {
     undefined
   );
 
+  const [referenceMetaObject, setReferenceMetaObject] = useState<{[k: string]: any} | null>([]);
+
   const isFirefox = /Firefox/i.test(window.navigator.userAgent);
   const isSafari = /Safari/i.test(window.navigator.userAgent);
 
@@ -171,15 +172,6 @@ const Home = () => {
                 .fetchDocumentCollections(targetOrg.id)
                 .then(({ data }) => {
                   setCollections(data);
-                  // chrome.storage.local.get(["collection"], ({ project } ) => {
-                  //   if (project) {
-                  //     setSelectedProject(project)
-                  //   } else {
-                  //     chrome.storage.local.set({project: data[0]}, () => {
-                  //       setSelectedProject(data[0])
-                  //     })
-                  //   }
-                  // })
                 })
                 .catch((err) => {
                   console.log(err);
@@ -221,8 +213,12 @@ const Home = () => {
               citekey: result[0].citekey,
               entrytype: result[0].entrytype,
           };
-          console.log(referenceMeta)
+          setReferenceMetaObject(referenceMeta);
           referenceMetaRef.current = referenceMeta;
+        }).catch((err) => {
+          setReferenceMetaObject(null);
+          referenceMetaRef.current = null;
+          console.log(err);
         })
         chrome.tabs.sendMessage(currentTabId, message, (response) => {
           if (response !== "pdf" && response !== "html") {
@@ -286,8 +282,32 @@ const Home = () => {
       });
   };
 
-  const handleSaveWebPage = async () => {
-    console.log("in handle save web page")
+  const handleSaveReferenceMeta = () => {
+    if (stopOnError) {
+      reset();
+    } else if (upload === "completed") {
+      window.open(`${portUrl}/browse?organizationId=${selectedOrganization?.id}`, "_blank");
+    } else {
+      setCapture("completed");
+      setProcess("completed");
+      setUpload("started");
+
+      if (!referenceMetaRef.current) {
+        setUpload("error");
+      }
+      axios.post(`${baseUrl}/api/document/create_stubs`, {
+        organization_id: selectedOrganization?.id,
+        stubs: [{ meta_json: JSON.stringify(referenceMetaRef.current)}]
+      }).then((res) => {
+        setUploadProgress(100)
+        setUpload("completed");
+      }).catch((err) => {
+        setUpload("error");
+      })
+    }
+  }
+
+  const handleSaveWebPage = () => {
     if (stopOnError) {
       reset();
       sendSaveWebPageMessage();
@@ -610,7 +630,7 @@ const Home = () => {
             {getButtonText("Upload PDF file Petal Cite")}
           </LoadingButton>
         )}
-        {showedButtonType === "html" && (
+        {showedButtonType === "html" && !(referenceMetaObject && referenceMetaObject.entrytype !== "misc")  &&  (
           <LoadingButton
             onClick={handleSaveWebPage}
             loading={inProgress}
@@ -629,22 +649,38 @@ const Home = () => {
           <>
             <Typography
               variant="subtitle2"
-              sx={{ mb: "0.75rem", mr: "0.5rem" }}
+              sx={{ mb: "0.75rem", mr: "0.5rem" }} 
             >
               {" "}
-              Upload local files through Synapse
+              Reload the page to capture the latest version of the document
             </Typography>
             <Button
               onClick={() => {
-                window.open(`${portUrl}/browse/?organizationId=${selectedOrganization?.id}`, "_blank");
+                chrome && chrome.tabs && chrome.tabs.reload();
+                window.close();
               }}
               variant="contained"
               disableElevation
               style={{ marginTop: "1rem", marginRight: "auto" }}
             >
-              Go to Web App
+              Reload
             </Button>
           </>
+        )}
+        {showedButtonType === "html" && referenceMetaObject && referenceMetaObject.entrytype !== "misc" && (
+          <LoadingButton
+          onClick={handleSaveReferenceMeta}
+          loading={inProgress}
+          loadingPosition="start"
+          startIcon={
+            upload === "completed" ? <ExitToAppIcon /> : <SaveIcon />
+          }
+          variant="contained"
+          disableElevation
+          loadingIndicator={<CircularProgress color="inherit" size={12} />}
+        >
+          {getButtonText("Save embedded reference to Petal Cite")}
+        </LoadingButton>
         )}
         {showedButtonType === "invalid" && (
           <Typography variant="subtitle2" sx={{ mb: "0.75rem", mr: "0.5rem" }}>
