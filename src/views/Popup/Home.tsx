@@ -299,6 +299,7 @@ const Home = () => {
         organization_id: selectedOrganization?.id,
         stubs: [{ meta_json: JSON.stringify(referenceMetaRef.current)}]
       }).then((res) => {
+        updateCollection(res.data[0].id);
         setUploadProgress(100)
         setUpload("completed");
       }).catch((err) => {
