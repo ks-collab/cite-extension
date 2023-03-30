@@ -122,7 +122,8 @@ const Home = () => {
     DocumentCollection | undefined
   >(undefined);
 
-  const [showedButtonType, setShowedButtonType] = useState("synapse");
+  const [showedButtonType, setShowedButtonType] = useState("reload");
+  const [checkingRefType, setCheckingRefType] = useState(false);
 
   const [capture, setCapture] = useState<ProcessStatus>("not started");
   const [process, setProcess] = useState<ProcessStatus>("not started");
@@ -139,7 +140,7 @@ const Home = () => {
     undefined
   );
 
-  const [referenceMetaObject, setReferenceMetaObject] = useState<{[k: string]: any} | null>([]);
+  const [referenceMetaObject, setReferenceMetaObject] = useState<{[k: string]: any} | undefined>(undefined);
 
   const isFirefox = /Firefox/i.test(window.navigator.userAgent);
   const isSafari = /Safari/i.test(window.navigator.userAgent);
@@ -147,8 +148,6 @@ const Home = () => {
   const customCollections = collections.filter(
     (collection) => !defaultCollectionsTypes.includes(collection.name)
   );
-
-  const referenceMetaRef = useRef<{[k: string]: any} | null>(null)
 
   useEffect(() => {
     chrome.storage.local.get(["user"], ({ user }) => {
@@ -201,6 +200,7 @@ const Home = () => {
       chrome.tabs.query(queryInfo, (tabs) => {
         const currentTabId = tabs[0].id as number;
         const currentTabUrl = tabs[0].url as string;
+        setCheckingRefType(true);
         axios.post("https://cite.petal-dev.org/api/citegen/query", {type: "article", query: currentTabUrl})
           .then((res) => {
           const { items } = res.data;
@@ -213,11 +213,10 @@ const Home = () => {
               citekey: result[0].citekey,
               entrytype: result[0].entrytype,
           };
+          setCheckingRefType(false);
           setReferenceMetaObject(referenceMeta);
-          referenceMetaRef.current = referenceMeta;
         }).catch((err) => {
-          setReferenceMetaObject(null);
-          referenceMetaRef.current = null;
+          setReferenceMetaObject(undefined);
           console.log(err);
         })
         chrome.tabs.sendMessage(currentTabId, message, (response) => {
@@ -292,19 +291,20 @@ const Home = () => {
       setProcess("completed");
       setUpload("started");
 
-      if (!referenceMetaRef.current) {
+      if (!referenceMetaObject) {
         setUpload("error");
+      } else {
+        axios.post(`${baseUrl}/api/document/create_stubs`, {
+          organization_id: selectedOrganization?.id,
+          stubs: [{ meta_json: JSON.stringify(referenceMetaObject)}]
+        }).then((res) => {
+          updateCollection(res.data[0].id);
+          setUploadProgress(100)
+          setUpload("completed");
+        }).catch((err) => {
+          setUpload("error");
+        })
       }
-      axios.post(`${baseUrl}/api/document/create_stubs`, {
-        organization_id: selectedOrganization?.id,
-        stubs: [{ meta_json: JSON.stringify(referenceMetaRef.current)}]
-      }).then((res) => {
-        updateCollection(res.data[0].id);
-        setUploadProgress(100)
-        setUpload("completed");
-      }).catch((err) => {
-        setUpload("error");
-      })
     }
   }
 
@@ -361,8 +361,8 @@ const Home = () => {
                   formData.append("file", file, filename);
                   formData.append("doctype", "html");
 
-                  if (referenceMetaRef && referenceMetaRef.current) {
-                    formData.append("meta_json", JSON.stringify(referenceMetaRef.current));
+                  if (referenceMetaObject) {
+                    formData.append("meta_json", JSON.stringify(referenceMetaObject));
                   }
 
                   const uploadXhr = new XMLHttpRequest();
@@ -578,6 +578,34 @@ const Home = () => {
     return null;
   };
 
+  const reload = () => {
+    chrome && chrome.tabs && chrome.tabs.reload();
+    window.close();
+  }
+
+  let buttonText = "Reload the page to capture the latest version of the document";
+  let buttonAction = reload;
+  let buttonDisabled = false;
+  if (checkingRefType) {
+    buttonText = "Checking reference type...";
+    buttonDisabled = true;
+  } else {
+    buttonDisabled = false;
+    if (showedButtonType === "pdf") {
+      buttonText = getButtonText("Upload PDF file to Petal Cite")
+      buttonAction = handleSavePdf;
+    } else if (showedButtonType === "html") {
+      if (referenceMetaObject && referenceMetaObject.entrytype !== "misc") {
+        buttonText = getButtonText("Save embedded reference to Petal Cite");
+        buttonAction = handleSaveReferenceMeta;
+      } else {
+        buttonText = getButtonText("Save current web page to Petal Cite")
+        buttonAction = handleSaveWebPage;
+      }
+    }
+
+  }
+
   return (
     <Root className={classes.root}>
       <div className={classes.selectors}>
@@ -616,77 +644,26 @@ const Home = () => {
       </div>
 
       <div className={classes.action}>
-        {showedButtonType === "pdf" && (
+        {showedButtonType !== "invalid" && (
           <LoadingButton
-            onClick={handleSavePdf}
+            onClick={buttonAction}
             loading={inProgress}
             loadingPosition="start"
             startIcon={
               upload === "completed" ? <ExitToAppIcon /> : <SaveIcon />
             }
             variant="contained"
+            disabled={buttonDisabled}
             disableElevation
             loadingIndicator={<CircularProgress color="inherit" size={12} />}
           >
-            {getButtonText("Upload PDF file Petal Cite")}
+            {buttonText}
           </LoadingButton>
-        )}
-        {showedButtonType === "html" && !(referenceMetaObject && referenceMetaObject.entrytype !== "misc")  &&  (
-          <LoadingButton
-            onClick={handleSaveWebPage}
-            loading={inProgress}
-            loadingPosition="start"
-            startIcon={
-              upload === "completed" ? <ExitToAppIcon /> : <SaveIcon />
-            }
-            variant="contained"
-            disableElevation
-            loadingIndicator={<CircularProgress color="inherit" size={12} />}
-          >
-            {getButtonText("Save current web page to Petal Cite")}
-          </LoadingButton>
-        )}
-        {showedButtonType === "synapse" && (
-          <>
-            <Typography
-              variant="subtitle2"
-              sx={{ mb: "0.75rem", mr: "0.5rem" }} 
-            >
-              {" "}
-              Reload the page to capture the latest version of the document
-            </Typography>
-            <Button
-              onClick={() => {
-                chrome && chrome.tabs && chrome.tabs.reload();
-                window.close();
-              }}
-              variant="contained"
-              disableElevation
-              style={{ marginTop: "1rem", marginRight: "auto" }}
-            >
-              Reload
-            </Button>
-          </>
-        )}
-        {showedButtonType === "html" && referenceMetaObject && referenceMetaObject.entrytype !== "misc" && (
-          <LoadingButton
-          onClick={handleSaveReferenceMeta}
-          loading={inProgress}
-          loadingPosition="start"
-          startIcon={
-            upload === "completed" ? <ExitToAppIcon /> : <SaveIcon />
-          }
-          variant="contained"
-          disableElevation
-          loadingIndicator={<CircularProgress color="inherit" size={12} />}
-        >
-          {getButtonText("Save embedded reference to Petal Cite")}
-        </LoadingButton>
         )}
         {showedButtonType === "invalid" && (
           <Typography variant="subtitle2" sx={{ mb: "0.75rem", mr: "0.5rem" }}>
             {" "}
-            Invalid file type, please open a pdf file
+            Invalid file type, please open a pdf file or a web page.{" "}
           </Typography>
         )}
         {inProgress && (
