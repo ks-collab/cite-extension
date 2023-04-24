@@ -59,7 +59,7 @@ const UserBar = ({
   };
 
   const handleSignIn = () => {
-    window.open(portUrl, "_blank");
+    window.open("https://accounts.petal.org/login?service=cite", "_blank");
   };
 
   if (!user) {

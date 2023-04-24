@@ -28,7 +28,7 @@ const Root = styled("div")(({ theme }) => ({
 
 const Auth = () => {
   const handleSynapseSignIn = () => {
-    window.open(portUrl, "_blank");
+    window.open("https://accounts.petal.org/login?service=cite", "_blank");
   };
   return (
     <Root className={classes.root}>

@@ -23,7 +23,14 @@ const Popup = () => {
     });
   }, []);
 
+  //set user undefined and remove token from local storage
+  const cleanup = () => {
+    setUser(undefined);
+    chrome.storage?.local.remove(["user"]);
+  }
+
   const logout = () => {
+    cleanup();
     window.open(`${portUrl}/logout`, "_blank");
   };
 
@@ -63,7 +70,7 @@ const Popup = () => {
         </div>
       ) : (
         <div>
-          <Home />
+          <Home cleanup={cleanup}/>
         </div>
       )}
     </>

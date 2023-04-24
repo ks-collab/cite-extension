@@ -28,6 +28,7 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import Cite from "citation-js";
 import axios from "axios";
 import { parseBibTeX } from "utils/bibtex";
+import handleAxiosError from "utils/handleAxiosError";
 
 const PREFIX = "Home";
 const classes = {
@@ -107,7 +108,11 @@ const LinearProgressWithLabel = (
   );
 };
 
-const Home = () => {
+interface Props {
+  cleanup: () => void;
+}
+
+const Home:React.FC<Props> = ({cleanup}) => {
   const [user, setUser] = useState<AccessTokenResponse | undefined>(undefined);
 
   const [organizationList, setOrganizationList] = useState<OrganizationList>(
@@ -149,6 +154,8 @@ const Home = () => {
     (collection) => !defaultCollectionsTypes.includes(collection.name)
   );
 
+
+
   useEffect(() => {
     chrome.storage.local.get(["user"], ({ user }) => {
       if (user) {
@@ -173,11 +180,11 @@ const Home = () => {
                   setCollections(data);
                 })
                 .catch((err) => {
-                  console.log(err);
+                  handleAxiosError(err, cleanup);
                 });
             })
             .catch((err) => {
-              console.log(err);
+              handleAxiosError(err, cleanup);
             });
           if (organization) {
             setSelectedOrganization(organization);
@@ -217,7 +224,7 @@ const Home = () => {
           setReferenceMetaObject(referenceMeta);
         }).catch((err) => {
           setReferenceMetaObject(undefined);
-          console.log(err);
+          handleAxiosError(err, cleanup);
         })
         chrome.tabs.sendMessage(currentTabId, message, (response) => {
           if (response !== "pdf" && response !== "html") {
@@ -251,7 +258,7 @@ const Home = () => {
           setCollections(data);
         })
         .catch((err) => {
-          console.log(err);
+          handleAxiosError(err, cleanup);
         });
     });
   };
