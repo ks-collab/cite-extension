@@ -61,7 +61,7 @@ const Popup = () => {
           {user === undefined ? (
               <Box style={{ height: "300px", display: "flex" }}>
                 <Typography color="textSecondary" sx={{ margin: "auto" }}>
-                  To use the Petal Cite Web Importer, please sign in.
+                  To use the Petal Web Importer, please sign in.
                 </Typography>
               </Box>
             ) : (

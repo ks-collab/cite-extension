@@ -593,14 +593,14 @@ const Home:React.FC<Props> = ({cleanup}) => {
   } else {
     buttonDisabled = false;
     if (showedButtonType === "pdf") {
-      buttonText = getButtonText("Upload PDF file to Petal Cite")
+      buttonText = getButtonText("Upload PDF file to Petal")
       buttonAction = handleSavePdf;
     } else if (showedButtonType === "html") {
       if (referenceMetaObject && referenceMetaObject.entrytype !== "misc") {
-        buttonText = getButtonText("Save embedded reference to Petal Cite");
+        buttonText = getButtonText("Save embedded reference to Petal");
         buttonAction = handleSaveReferenceMeta;
       } else {
-        buttonText = getButtonText("Save current web page to Petal Cite")
+        buttonText = getButtonText("Save current web page to Petal")
         buttonAction = handleSaveWebPage;
       }
     }
