@@ -4,7 +4,10 @@ import {
   AuthBody,
   DocumentCollection,
   DocumentCollectionUpdateBody,
+  DocumentReadResponse,
+  DocumentUpdateBody,
   OrganizationList,
+  TagList,
 } from "models/api/response.types";
 
 const authUsingPassword = (
@@ -31,11 +34,25 @@ const updateDocumentCollection = (
   return axios.post(`/api/collection/update`, payload);
 };
 
+const fetchTags = (
+  organizationId: number,
+): AxiosPromise<TagList> => {
+  return axios.get(`/api/organization/${organizationId}/tag/list`);
+};
+
+const updateDocument = (
+  id: number,
+  updates: DocumentUpdateBody
+): AxiosPromise<DocumentReadResponse> =>
+  axios.post(`/api/document/${id}/update`, updates);
+
 export const authService = {
   authUsingPassword,
   fetchUserOrganizationList,
   fetchDocumentCollections,
   updateDocumentCollection,
+  fetchTags,
+  updateDocument
 };
 
 export default authService;
