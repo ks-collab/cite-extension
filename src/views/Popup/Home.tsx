@@ -1,24 +1,23 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Box,
   Button,
-  CircularProgress,
-  LinearProgress,
-  LinearProgressProps,
+  FormControl,
+  InputLabel,
   styled,
   Typography,
+  useTheme,
 } from "@mui/material";
-import { LoadingButton, TreeItem } from "@mui/lab";
+import { Icon } from '@iconify/react';
 import SaveIcon from "@mui/icons-material/Save";
-import CheckIcon from "@mui/icons-material/Check";
-import ClearIcon from "@mui/icons-material/Clear";
 import authService from "api/authService";
 import {
   AccessTokenResponse,
   DocumentCollection,
   Organization,
   OrganizationList,
+  TagList,
 } from "models/api/response.types";
 import { ChromeMessage, Sender } from "types";
 import baseUrl, { portUrl } from "utils/baseUrl";
@@ -29,57 +28,59 @@ import Cite from "citation-js";
 import axios from "axios";
 import { parseBibTeX } from "utils/bibtex";
 import handleAxiosError from "utils/handleAxiosError";
+import TagInput from "./TagInput";
 
-const PREFIX = "Home";
-const classes = {
-  root: `${PREFIX}-root`,
-  selectors: `${PREFIX}-selectors`,
-  selector: `${PREFIX}-selector`,
-  slash: `${PREFIX}-slash`,
-  progress: `${PREFIX}-progress`,
-  action: `${PREFIX}-action`,
-};
-const Root = styled("div")(({ theme }) => ({
-  [`&.${classes.root}`]: {
+const Root = styled(Box)(({ theme }) => ({
+  display: "flex",
+  flexDirection: "column",
+  paddingLeft: theme.spacing(2.5),
+  paddingRight: theme.spacing(2.5),
+  paddingTop: theme.spacing(1.5),
+  paddingBottom: theme.spacing(1.5),
+  justifyContent: "space-between",
+  height: "100%",
+  "& .error": {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "-webkit-fill-available",
+    height: "40px",
+  },
+  "& .selector-container": {
     display: "flex",
     flexDirection: "column",
-    paddingLeft: theme.spacing(2.5),
-    paddingRight: theme.spacing(2.5),
-    paddingTop: theme.spacing(1.5),
-    paddingBottom: theme.spacing(1.5),
+    gap: "1rem",
+    "& .MuiInputLabel-root": {
+      color: "#272727",
+      position: "relative",
+      transform: "none",
+      marginBottom: "8px",
+      fontWeight: 600
+    },
   },
-  [`& .${classes.action}`]: {
-    marginTop: "1.5rem",
-    // marginBottom: "2rem",
-    width: "100%",
-    textAlign: "start",
+  "& .action-container": {
+    marginTop: "1rem"
   },
-  [`& .${classes.selectors}`]: {
+  "& .loader": {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    height: "100%",
     width: "100%",
     display: "flex",
     flexDirection: "column",
-  },
-  [`& .${classes.selector}`]: {
-    width: "100%",
-    display: "flex",
-    flexDirection: "row",
-    marginTop: "0.5rem",
-    marginBottom: "0rem",
-  },
-  [`& .${classes.slash}`]: {
-    margin: "auto 0.25rem",
-    fontSize: "0.875rem",
-  },
-  [`& .${classes.progress}`]: {
-    width: "100%",
-  },
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4rem",
+    "& .icon": {
+      width: "70px",
+      height: "70px"
+    },
+    "& .loader-text": {
+      margin: "0 2rem"
+    }
+  }
 }));
-
-const DropDownWrapper = styled("div")(
-  ({ theme }) => `
-    margin-left: auto;
-  `
-);
 
 type ProcessStatus = "not started" | "started" | "completed" | "error";
 
@@ -91,35 +92,18 @@ const defaultCollectionsTypes = [
   "Read later",
 ];
 
-const LinearProgressWithLabel = (
-  props: LinearProgressProps & { value: number }
-) => {
-  return (
-    <Box display="flex" alignItems="center">
-      <Box width="100%" mr={1}>
-        <LinearProgress variant="determinate" {...props} />
-      </Box>
-      <Box minWidth={35}>
-        <Typography variant="body2" color="textSecondary">{`${Math.round(
-          props.value
-        )}%`}</Typography>
-      </Box>
-    </Box>
-  );
-};
-
 interface Props {
   cleanup: () => void;
 }
 
 const Home:React.FC<Props> = ({cleanup}) => {
+  const theme = useTheme();
   const [user, setUser] = useState<AccessTokenResponse | undefined>(undefined);
-
   const [organizationList, setOrganizationList] = useState<OrganizationList>(
     []
   );
   const [collections, setCollections] = useState<DocumentCollection[]>([]);
-
+  const [tags, setTags] = useState<TagList>([]);
   const [selectedOrganization, setSelectedOrganization] = useState<
     Organization | undefined
   >(undefined);
@@ -133,6 +117,8 @@ const Home:React.FC<Props> = ({cleanup}) => {
   const [capture, setCapture] = useState<ProcessStatus>("not started");
   const [process, setProcess] = useState<ProcessStatus>("not started");
   const [upload, setUpload] = useState<ProcessStatus>("not started");
+  const [showUploadCompleted, setShowUploadCompleted] = useState(false);
+  const [documentTags, setDocumentTags] = useState<TagList>([]);
 
   const stopOnError =
     capture === "error" || process === "error" || upload === "error";
@@ -154,7 +140,14 @@ const Home:React.FC<Props> = ({cleanup}) => {
     (collection) => !defaultCollectionsTypes.includes(collection.name)
   );
 
-
+  useEffect(() => {
+    if(upload === "completed"){
+      setShowUploadCompleted(true);
+      setTimeout(() => {
+        setShowUploadCompleted(false)
+      }, 3000)
+    }
+  }, [upload])
 
   useEffect(() => {
     chrome.storage.local.get(["user"], ({ user }) => {
@@ -178,6 +171,14 @@ const Home:React.FC<Props> = ({cleanup}) => {
                 .fetchDocumentCollections(targetOrg.id)
                 .then(({ data }) => {
                   setCollections(data);
+                })
+                .catch((err) => {
+                  handleAxiosError(err, cleanup);
+                });
+              authService
+                .fetchTags(targetOrg.id)
+                .then(({ data }) => {
+                  setTags(data)
                 })
                 .catch((err) => {
                   handleAxiosError(err, cleanup);
@@ -260,10 +261,18 @@ const Home:React.FC<Props> = ({cleanup}) => {
         .catch((err) => {
           handleAxiosError(err, cleanup);
         });
+      authService
+        .fetchTags(target.id)
+        .then(({ data }) => {
+          setTags(data)
+        })
+        .catch((err) => {
+          handleAxiosError(err, cleanup);
+        });
     });
   };
 
-  const handleChangeCollection = (target: DocumentCollection) => {
+  const handleChangeCollection = (target: DocumentCollection | undefined) => {
     setSelectedCollection(target);
   };
 
@@ -288,6 +297,15 @@ const Home:React.FC<Props> = ({cleanup}) => {
       });
   };
 
+  const updateDocumentTags = (documentId:number) => {
+    if(documentTags.length === 0){
+      return
+    }
+    authService.updateDocument(documentId, {
+      tags_json: JSON.stringify(documentTags.map(tag => tag.id))
+    })
+  };
+
   const handleSaveReferenceMeta = () => {
     if (stopOnError) {
       reset();
@@ -297,7 +315,6 @@ const Home:React.FC<Props> = ({cleanup}) => {
       setCapture("completed");
       setProcess("completed");
       setUpload("started");
-
       if (!referenceMetaObject) {
         setUpload("error");
       } else {
@@ -306,6 +323,7 @@ const Home:React.FC<Props> = ({cleanup}) => {
           stubs: [{ meta_json: JSON.stringify(referenceMetaObject)}]
         }).then((res) => {
           updateCollection(res.data[0].id);
+          updateDocumentTags(res.data[0].id);
           setUploadProgress(100)
           setUpload("completed");
         }).catch((err) => {
@@ -397,13 +415,14 @@ const Home:React.FC<Props> = ({cleanup}) => {
                         setUpload("completed");
                         if (response) {
                           updateCollection(response.id);
+                          updateDocumentTags(response.id);
                         }
                       } else if (uploadXhr.status === 409) {
-                        setUpload("error");
                         setErrorMessage("Document already exists");
-                      } else {
                         setUpload("error");
+                      } else {
                         setErrorMessage(uploadXhr.response.error);
+                        setUpload("error");
                       }
                     }
                   };
@@ -478,13 +497,15 @@ const Home:React.FC<Props> = ({cleanup}) => {
             setUpload("completed");
             if (response) {
               updateCollection(response.id);
+              updateDocumentTags(response.id);
             }
           } else if (uploadXhr.status === 409) {
-            setUpload("error");
             setErrorMessage("Document already exists");
-          } else {
             setUpload("error");
+            
+          } else {
             setErrorMessage(uploadXhr.response.error);
+            setUpload("error");
           }
         }
       };
@@ -558,39 +579,12 @@ const Home:React.FC<Props> = ({cleanup}) => {
     return defaultButton;
   };
 
-  // const CustomTreeItem = (props: TreeItemProps) => (
-  //   <TreeItem ContentComponent={CollectionTreeItem} {...props} />
-  // );
-
-  const renderTreeItem = (item: DocumentCollection, lvl: number) => {
-    if (collections) {
-      const children = collections.filter((coll) => {
-        return coll.parent_id === item.id;
-      });
-
-      const generateSubLogic = () => {
-        return children.map((child) => renderTreeItem(child, lvl + 1));
-      };
-
-      if (item.parent_id > 0 && lvl === 0) {
-        return null;
-      }
-
-      return (
-        <TreeItem key={item.id} nodeId={item.id.toString()} label={item.name}>
-          {generateSubLogic()}
-        </TreeItem>
-      );
-    }
-    return null;
-  };
-
   const reload = () => {
     chrome && chrome.tabs && chrome.tabs.reload();
     window.close();
   }
 
-  let buttonText = "Reload the page to capture the latest version of the document";
+  let buttonText = "Reload the page to get the latest version";
   let buttonAction = reload;
   let buttonDisabled = false;
   if (checkingRefType) {
@@ -599,184 +593,148 @@ const Home:React.FC<Props> = ({cleanup}) => {
   } else {
     buttonDisabled = false;
     if (showedButtonType === "pdf") {
-      buttonText = getButtonText("Upload PDF file to Petal Cite")
+      buttonText = getButtonText("Upload PDF file to Petal")
       buttonAction = handleSavePdf;
     } else if (showedButtonType === "html") {
       if (referenceMetaObject && referenceMetaObject.entrytype !== "misc") {
-        buttonText = getButtonText("Save embedded reference to Petal Cite");
+        buttonText = getButtonText("Save embedded reference to Petal");
         buttonAction = handleSaveReferenceMeta;
       } else {
-        buttonText = getButtonText("Save current web page to Petal Cite")
+        buttonText = getButtonText("Save current web page to Petal")
         buttonAction = handleSaveWebPage;
       }
     }
-
   }
 
   return (
-    <Root className={classes.root}>
-      <div className={classes.selectors}>
-        <div className={classes.selector}>
-          <Typography
-            variant="subtitle2"
-            sx={{ my: "auto", mr: "0.5rem", width: "125px" }}
+    <Root>
+      {stopOnError && (
+        <Alert
+          severity="error"
+          onClose={reset}
+          className="error"
+        >
+          {errorMessage ? errorMessage : "Something went wrong, please try again."}
+        </Alert>
+      )}
+       <Box className="selector-container">
+        <FormControl variant="standard">
+          <InputLabel
+            shrink
           >
-            {" "}
-            Workspace:{" "}
-          </Typography>
-          <DropDownWrapper>
-            <MenuListComposition
-              list={organizationList}
-              selected={selectedOrganization}
-              onChange={handleChangeOrganization}
-            />
-          </DropDownWrapper>
-        </div>
-        <div className={classes.selector}>
-          <Typography
-            variant="subtitle2"
-            sx={{ my: "auto", mr: "0.5rem", width: "125px" }}
+          Workspace:
+          </InputLabel>
+          <MenuListComposition
+            list={organizationList}
+            selected={selectedOrganization}
+            onChange={handleChangeOrganization}
+          />
+        </FormControl>
+        <FormControl variant="standard">
+          <InputLabel
+            shrink
           >
-            {" "}
-            Collection:{" "}
-          </Typography>
-          <DropDownWrapper>
-            <TreeViewComposition
-              list={customCollections}
-              selected={selectedCollection}
-              onChange={handleChangeCollection}
-            />
-          </DropDownWrapper>
-        </div>
-      </div>
-
-      <div className={classes.action}>
-        {showedButtonType !== "invalid" && (
-          <LoadingButton
-            onClick={buttonAction}
-            loading={inProgress}
-            loadingPosition="start"
-            startIcon={
-              upload === "completed" ? <ExitToAppIcon /> : <SaveIcon />
-            }
-            variant="contained"
-            disabled={buttonDisabled}
-            disableElevation
-            loadingIndicator={<CircularProgress color="inherit" size={12} />}
+          Collection:
+          </InputLabel>
+          <TreeViewComposition
+            list={customCollections}
+            selected={selectedCollection}
+            onChange={handleChangeCollection}
+          />
+        </FormControl>
+        <FormControl variant="standard">
+          <InputLabel
+            shrink
           >
-            {buttonText}
-          </LoadingButton>
-        )}
-        {showedButtonType === "invalid" && (
-          <Typography variant="subtitle2" sx={{ mb: "0.75rem", mr: "0.5rem" }}>
-            {" "}
-            Invalid file type, please open a pdf file or a web page.{" "}
-          </Typography>
-        )}
-        {inProgress && (
-          <Alert severity="warning">
-            Do not close or navigate away while capturing; the capture process
-            will be interrupted if you close the extension!
-          </Alert>
-        )}
-      </div>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          textAlign: "start",
-          marginTop: "0.75rem",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "row" }}>
-          {capture === "not started" && (
-            <div style={{ marginBottom: 12 }}></div>
+          Add tags to new document:
+          </InputLabel>
+          <TagInput 
+            setValue={setDocumentTags}
+            selectedTags={documentTags}
+            dropDownTags={tags}
+          />
+        </FormControl>
+       </Box>
+       <Box className="action-container">
+        {showedButtonType !== "invalid" ? (
+            <Button
+              fullWidth
+              onClick={buttonAction}
+              startIcon={
+                upload === "completed" ? <ExitToAppIcon /> : <SaveIcon />
+              }
+              variant="contained"
+              disabled={buttonDisabled}
+              disableElevation
+            >
+              {buttonText}
+            </Button>
+          ) : (
+            <Alert
+              severity="error"
+            >
+              Invalid file type, please open a pdf file or a web page.
+            </Alert>
           )}
-          {capture !== "not started" && capture !== "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto", mr: "0.5rem" }}>
-              Capturing content
-            </Typography>
+          {((inProgress && !stopOnError) || showUploadCompleted) && (
+            <Box 
+              className="loader"
+              sx={{
+                transition: "all 0.3s ease-out",
+                ...(!showUploadCompleted ? {
+                  background: theme.background.main
+                } : {
+                  background: theme.palette.success.light
+                })
+              }}
+            >
+              {!showUploadCompleted ? (
+                <>
+                  <Box>
+                    <Icon 
+                      className="icon" 
+                      icon="line-md:uploading-loop" 
+                      style={{
+                        color: theme.palette.primary.main
+                      }}
+                    />
+                    <Typography 
+                      variant="body1" 
+                      fontWeight={600} 
+                      textAlign="center"
+                    >
+                      {Math.floor(uploadProgress)}%
+                    </Typography>
+                  </Box>
+                  <Typography className="loader-text" variant="body1" textAlign="center">
+                    Do not close or navigate away while capturing; the capture process 
+                    will be interrupted if you close the extension!
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Icon 
+                    className="icon" 
+                    icon="line-md:confirm"
+                    style={{
+                      color: theme.background.light
+                    }}
+                  />
+                  <Typography 
+                    className="loader-text" 
+                    variant="body1" 
+                    textAlign="center"
+                    sx={{
+                      color: theme.background.light
+                    }}
+                  >
+                    The document has been loaded successfully. You can now access and view it in your workspace.
+                  </Typography>
+                </>
+              )}
+            </Box>
           )}
-          {capture !== "not started" && capture !== "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto" }}>
-              ...
-            </Typography>
-          )}
-          {capture === "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto", mr: "0.5rem" }}>
-              Captured content
-            </Typography>
-          )}
-          {capture === "completed" && (
-            <CheckIcon sx={{ my: "auto", ml: "1rem" }} color="success" />
-          )}
-          {capture === "error" && (
-            <ClearIcon sx={{ my: "auto", ml: "1rem" }} color="error" />
-          )}
-        </div>
-        <div style={{ display: "flex", flexDirection: "row" }}>
-          {process === "not started" && (
-            <div style={{ marginBottom: 12 }}></div>
-          )}
-          {process !== "not started" && process !== "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto", mr: "0.5rem" }}>
-              Processing data
-            </Typography>
-          )}
-          {process !== "not started" && process !== "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto" }}>
-              ...
-            </Typography>
-          )}
-          {process === "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto", mr: "0.5rem" }}>
-              Processed data
-            </Typography>
-          )}
-          {process === "completed" && (
-            <CheckIcon sx={{ my: "auto", ml: "1rem" }} color="success" />
-          )}
-          {process === "error" && (
-            <ClearIcon sx={{ my: "auto", ml: "1rem" }} color="error" />
-          )}
-        </div>
-        <div style={{ display: "flex", flexDirection: "row" }}>
-          {upload === "not started" && <div style={{ marginBottom: 12 }}></div>}
-          {upload !== "not started" && upload !== "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto", mr: "0.5rem" }}>
-              Uploading to Project
-            </Typography>
-          )}
-          {upload !== "not started" && upload !== "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto" }}>
-              ...
-            </Typography>
-          )}
-          {upload === "completed" && (
-            <Typography variant="subtitle2" sx={{ my: "auto", mr: "0.5rem" }}>
-              Uploaded to Project
-            </Typography>
-          )}
-          {upload === "completed" && (
-            <CheckIcon sx={{ my: "auto", ml: "1rem" }} color="success" />
-          )}
-          {upload === "error" && (
-            <ClearIcon sx={{ my: "auto", ml: "1rem" }} color="error" />
-          )}
-        </div>
-        {errorMessage !== "" && (
-          <Typography variant="subtitle2" sx={{ my: "auto", color: "red" }}>
-            {" "}
-            {errorMessage}{" "}
-          </Typography>
-        )}
-      </div>
-      {(showedButtonType === "pdf" || showedButtonType === "html") &&
-        (upload === "started" || upload === "completed") && (
-          <div className={classes.progress}>
-            <LinearProgressWithLabel value={uploadProgress} />
-          </div>
-        )}
+       </Box>
     </Root>
   );
 };

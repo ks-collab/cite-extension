@@ -1,18 +1,17 @@
 import React from "react";
 import {
-  IconButton,
   Menu,
   MenuItem,
   styled,
   Typography,
   ListItemIcon,
   ListItemText,
+  Button,
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import { grey } from "utils/color";
 import { AccessTokenResponse } from "models/api/response.types";
 import { portUrl } from "utils/baseUrl";
 
@@ -27,8 +26,6 @@ const Wrapper = styled("div")(
       margin-left: auto;
       margin-right: 1.25rem;
     }
-    color: ${grey[600]};
-    
   `
 );
 const UserBar = ({
@@ -65,41 +62,45 @@ const UserBar = ({
   if (!user) {
     return (
       <Wrapper>
-        <IconButton
-          size="small"
-          aria-label="account of current user"
+        <Button
+          size="medium"
+          aria-label="Account of current user"
           aria-controls="menu-appbar"
           aria-haspopup="true"
           onClick={handleSignIn}
-          color="inherit"
+          variant="text"
+          color="primary"
           className="user-icon-button"
+          startIcon={
+            <AccountCircle fontSize="small" />
+          }
         >
-          <AccountCircle fontSize="small" />
-          <Typography variant="body2" sx={{ marginLeft: "0.5rem" }}>
-            Sign in
-          </Typography>
-        </IconButton>
+          Sign in
+        </Button>
       </Wrapper>
     );
   }
 
   return (
     <Wrapper>
-      <IconButton
-        size="small"
-        aria-label="account of current user"
+      <Button
+        size="medium"
+        aria-label="Account of current user"
         aria-controls="menu-appbar"
         aria-haspopup="true"
         onClick={handleMenu}
-        color="inherit"
+        variant="text"
+        color="primary"
         className="user-icon-button"
+        startIcon={
+          <AccountCircle fontSize="small" />
+        }
+        endIcon={
+          <KeyboardArrowDownIcon fontSize="small" />
+        }
       >
-        <AccountCircle fontSize="small" />
-        <Typography variant="body2" sx={{ marginLeft: "0.5rem" }}>
-          Hello, {user.name}
-        </Typography>
-        <KeyboardArrowDownIcon fontSize="small" sx={{ marginLeft: "0.5rem" }} />
-      </IconButton>
+        Hello, {user.name}
+      </Button>
       <Menu
         id="menu-appbar"
         anchorEl={anchorEl}
@@ -115,7 +116,7 @@ const UserBar = ({
         open={Boolean(anchorEl)}
         onClose={handleClose}
       >
-        <MenuItem onClick={handleLogout} sx={{ color: `${grey[700]}` }} dense>
+        <MenuItem onClick={handleLogout} dense>
           <ListItemIcon>
             <LogoutIcon fontSize="small" />
           </ListItemIcon>
@@ -125,7 +126,6 @@ const UserBar = ({
         </MenuItem>
         <MenuItem
           onClick={handleGoToSynapse}
-          sx={{ color: `${grey[700]}` }}
           dense
         >
           <ListItemIcon>

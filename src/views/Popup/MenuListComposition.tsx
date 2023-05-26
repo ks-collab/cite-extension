@@ -1,61 +1,41 @@
-import * as React from "react";
+import React, { useRef, useState } from "react";
 import {
   Popper,
-  Grow,
-  Paper,
   ClickAwayListener,
   MenuList,
-  MenuItem,
   Typography,
   styled,
+  Box,
+  useTheme,
+  ListItemButton,
+  ListItemText,
 } from "@mui/material";
-import { grey } from "utils/color";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
-const StyledButton = styled("button")(
-  ({ theme }) => `
-  box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  font-family: IBM Plex Sans, sans-serif;
-  font-size: 0.875rem;
-  box-sizing: border-box;
-  background: #fff;
-  border: 1px solid #aaaaaa;
-  border-radius: 0.75em;
-  width: 368px;
-  padding: 8px;
-  text-align: left;
-  line-height: 1.15;
-  margin-left: auto;
-  color: ${grey[900]};
 
-  &:hover {
-    cursor: pointer
-  }
-
-  &.expanded {
-    background: #fff;
-    border: 1px solid #27569b;
-    &::after {
-      content: '▾';
-    }
-  }
-
-  &::after {
-    content: '▾';
-    float: right;
-  }
-
-  div {
-    width: 95%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: inline-block;
-    vertical-align: bottom;
-  }
-  `
-);
+const Container = styled(Box)(({theme}) => ({
+    background: theme.background.light,
+    border: `1px solid rgba(0, 0, 0, 0.23)`,
+    padding: "5px 10px",
+    cursor: "pointer",
+    "&:hover": {
+      border: `1px solid rgba(0, 0, 0, 0.87)`,
+    },
+    "&.expanded": {
+      border: `1px solid ${theme.palette.primary.main}`,
+    },
+    display: "flex",
+    justifyContent: "space-between",
+    flex: 1,
+    borderRadius: "4px",
+    alignItems: "center",
+    "& .title": {
+      color: theme.palette.text.primary,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    },
+}));
 
 interface Props<T> {
   list: T[];
@@ -68,112 +48,90 @@ const MenuListComposition = <T extends { id: number; name?: string }>({
   onChange,
   selected,
 }: Props<T>) => {
-  const [open, setOpen] = React.useState(false);
-  const anchorRef = React.useRef<HTMLButtonElement>(null);
-
-  const handleToggle = () => {
-    setOpen((prevOpen) => !prevOpen);
-  };
-
-  const handleClose = (event: Event | React.SyntheticEvent) => {
-    if (
-      anchorRef.current &&
-      anchorRef.current.contains(event.target as HTMLElement)
-    ) {
-      return;
-    }
-
-    setOpen(false);
-  };
+  const theme = useTheme();
+  const [menuOpen, setMenuOpen] = useState<null | HTMLElement>(null);
+  const anchorRef = useRef<HTMLButtonElement>(null);
 
   const handleChangeSelection = (
-    event: Event | React.SyntheticEvent,
     item: T
   ) => {
     if (selected === undefined || item.id !== selected.id) {
       onChange(item);
     }
-    handleClose(event);
+    setMenuOpen(null)
   };
-
-  function handleListKeyDown(event: React.KeyboardEvent) {
-    if (event.key === "Tab") {
-      event.preventDefault();
-      setOpen(false);
-    } else if (event.key === "Escape") {
-      setOpen(false);
-    }
-  }
-
-  // return focus to the button when we transitioned from !open -> open
-  const prevOpen = React.useRef(open);
-  React.useEffect(() => {
-    if (prevOpen.current === true && open === false) {
-      anchorRef.current!.focus();
-    }
-
-    prevOpen.current = open;
-  }, [open]);
 
   return (
     <>
-      <StyledButton
+      <Container
         ref={anchorRef}
         id="composition-button"
-        aria-controls={open ? "composition-menu" : undefined}
-        aria-expanded={open ? "true" : undefined}
-        aria-haspopup="true"
-        onClick={handleToggle}
-        className={open ? "expanded" : ""}
+        onClick={(e) => {
+          setMenuOpen(e.currentTarget);
+        }}
+        className={menuOpen ? "expanded" : ""}
       >
-        <div>{selected?.name || "..."}</div>
-      </StyledButton>
-      <Popper
-        style={{ zIndex: 1000 }}
-        open={open}
-        anchorEl={anchorRef.current}
-        role={undefined}
-        placement="bottom-start"
-        transition
-        disablePortal
-      >
-        {({ TransitionProps, placement }) => (
-          <Grow
-            {...TransitionProps}
-            style={{
-              transformOrigin: "left top",
+        <Typography variant="body2" className="title">
+          {selected?.name || "Please select an organization"}
+        </Typography>
+        <KeyboardArrowDownIcon
+          color="action"
+          sx={
+            menuOpen
+              ? {
+                  transform: "rotate(180deg)",
+                }
+              : {}
+          }
+        />
+      </Container>
+      {menuOpen && (
+        <ClickAwayListener 
+          onClickAway={() => {
+            setMenuOpen(null)
+          }}
+        >
+          <Popper
+            open={!!menuOpen}
+            anchorEl={menuOpen}
+            placement="bottom-start"
+            sx={{
+              borderRadius: "4px",
+              border: `1px solid #E9E9E9`,
+              boxShadow: `0 0.5rem 1rem rgba(149, 157, 165, 0.2)`,
+              maxHeight: "160px",
+              width: anchorRef.current
+                ? `${anchorRef.current.offsetWidth}px`
+                : "300px",
+              zIndex: 1301,
+              backgroundColor: theme.background.light,
+              overflow: "auto",
             }}
           >
-            <Paper style={{ maxHeight: 160, overflow: "auto", width: 368 }}>
-              <ClickAwayListener onClickAway={handleClose}>
-                <MenuList
-                  autoFocusItem={open}
-                  id="composition-menu"
-                  aria-labelledby="composition-button"
-                  onKeyDown={handleListKeyDown}
-                  dense
+            <MenuList
+              id="composition-menu"
+              aria-labelledby="composition-button"
+              dense
+            >
+              {list.map((item) => (
+                <ListItemButton
+                  sx={{
+                    padding: "0px 16px",
+                    height: "32px",
+                  }}
+                  selected={selected?.name === item.name}
+                  key={item.id}
+                  onClick={() => handleChangeSelection(item)}
                 >
-                  {list.map((item) => (
-                    <MenuItem
-                      sx={{
-                        padding: "0.25rem 0.8rem",
-                        minHeight: "1.5rem",
-                      }}
-                      onClick={(event) => handleChangeSelection(event, item)}
-                      key={item.id}
-                      dense
-                    >
-                      <Typography variant="inherit" noWrap>
-                        {item.name}
-                      </Typography>
-                    </MenuItem>
-                  ))}
-                </MenuList>
-              </ClickAwayListener>
-            </Paper>
-          </Grow>
-        )}
-      </Popper>
+                  <ListItemText>
+                    <Typography variant="body2">{item.name}</Typography>
+                  </ListItemText>
+                </ListItemButton>
+              ))}
+            </MenuList>
+          </Popper>
+      </ClickAwayListener>
+      )}
     </>
   );
 };

@@ -1,223 +1,207 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme } from "@mui/material";
+
+// module to add custom colors to theme
+declare module "@mui/material/styles" {
+  interface Theme {
+    grey: {
+      main: string;
+      light: string;
+    };
+    red: {
+      main: string;
+      dark: string;
+    };
+    background: {
+      main: string;
+      secondary: string;
+      light: string;
+    };
+    notice: {
+      main: string;
+    };
+    menu: {
+      selected: string;
+    };
+  }
+  // allow configuration using `createTheme`
+  interface ThemeOptions {
+    grey: {
+      main: string;
+      light: string;
+    };
+    red: {
+      main: string;
+      dark: string;
+    };
+    background: {
+      main: string;
+      secondary: string;
+      light: string;
+    };
+    notice: {
+      main: string;
+    };
+    menu: {
+      selected: string;
+    };
+  }
+}
 
 const theme = createTheme({
+  grey: {
+    main: "rgb(190,190,190)",
+    light: "rgb(240,240,240)",
+  },
+  red: {
+    main: "#c33d33",
+    dark: "#882a23",
+  },
+  background: {
+    main: "#f6f8fc",
+    secondary: "#ebf1fa",
+    light: "#FFF",
+  },
+  notice: {
+    main: "#f2e0a3",
+  },
+  // when menu is selected, backgorund button
+  menu: {
+    selected: "rgba(0, 0, 0, 0.04)",
+  },
   palette: {
-    primary: { main: "rgb(39, 86, 155)", dark: "#3F5164" },
+    mode: "light",
+    primary: {
+      main: "#3d5a80",
+    },
+    secondary: {
+      main: "#01579b",
+    },
+  },
+  spacing: 8,
+  typography: {
+    fontSize: 14,
+    h4: {
+      fontWeight: 500,
+    },
+    h5: {
+      fontWeight: 500,
+    },
+    h6: {
+      fontWeight: 500,
+    },
+  },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 900,
+      lg: 1200,
+      xl: 1400,
+    },
   },
   components: {
-    MuiButton: {
+    MuiButtonBase: {
       defaultProps: {
-        size: "small",
-      },
-      styleOverrides: {
-        root: {
-          textTransform: "none",
-          fontWeight: "normal",
-        },
-      },
-    },
-    MuiCircularProgress: {
-      defaultProps: {
-        disableShrink: true,
-      },
-    },
-    MuiFilledInput: {
-      defaultProps: {
-        margin: "dense",
-      },
-    },
-    MuiFormControl: {
-      defaultProps: {
-        margin: "dense",
-      },
-    },
-    MuiDivider: {
-      styleOverrides: {
-        root: {},
-      },
-    },
-    MuiFormHelperText: {
-      defaultProps: {
-        margin: "dense",
-      },
-    },
-    MuiIconButton: {
-      defaultProps: {
-        size: "small",
-      },
-    },
-    MuiInputBase: {
-      defaultProps: {
-        margin: "dense",
-      },
-      styleOverrides: {
-        root: {
-          minHeight: 0,
-        },
-        input: {
-          padding: "0.4rem 0 0.5rem",
-        },
-      },
-    },
-    MuiInputLabel: {
-      defaultProps: {
-        margin: "dense",
-      },
-    },
-    MuiListItem: {
-      defaultProps: {
-        dense: true,
-      },
-    },
-    MuiOutlinedInput: {
-      defaultProps: {
-        margin: "dense",
-      },
-    },
-    MuiFab: {
-      defaultProps: {
-        size: "small",
-      },
-    },
-    MuiTable: {
-      defaultProps: {
-        size: "small",
-      },
-    },
-    MuiTabs: {
-      styleOverrides: {
-        root: {
-          minHeight: "2.6875rem",
-          height: "2.6875rem",
-          "& button": {
-            minHeight: "2.6875rem",
-            height: "2.6875rem",
-            padding: "0",
-            fontSize: "0.9rem",
-            lineHeight: "1.25rem",
-          },
-          "& .": {
-            display: "flex",
-            justifyContent: "center",
-            backgroundColor: "#456",
-            transition: "none",
-          },
-          "& .MuiTab-root": {
-            color: "#333",
-            "&:hover": {
-              backgroundColor: "#eaeaea",
-            },
-          },
-          "& .Mui-selected": {
-            backgroundColor: "#fff",
-            color: "#456",
-          },
-          "& .MuiTabs-indicator": {
-            display: "flex",
-            justifyContent: "center",
-            backgroundColor: "#456",
-            transition: "none",
-          },
-        },
-      },
-    },
-    MuiTab: {
-      // defaultProps: {
-      //   disableRipple: true,
-      // },
-    },
-    MuiMenu: {
-      defaultProps: {
-        MenuListProps: {
-          // disablePadding: true,
-        },
+        disableRipple: true,
       },
     },
     MuiMenuItem: {
       styleOverrides: {
         root: {
-          padding: "0.5rem 0.8rem",
+          minHeight: 0,
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+        },
+      },
+    },
+    MuiSvgIcon: {
+      styleOverrides: {
+        root: {
+          "&.MuiSvgIcon-fontSizeSmall": {
+            width: "20px",
+            height: "20px",
+          },
+          "&.MuiSvgIcon-fontSizeMedium": {
+            width: "24px",
+            height: "24px",
+          },
+          "&.MuiSvgIcon-fontSizeLarge": {
+            width: "26px",
+            height: "26px",
+          },
+        },
+      },
+    },
+    MuiTooltip: {
+      styleOverrides: {
+        popper: {
+          zIndex: 15003,
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontSize: "18px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        },
+      },
+    },
+    MuiDialogActions: {
+      styleOverrides: {
+        root: {
+          padding: "0 24px 16px 24px",
         },
       },
     },
     MuiListItemText: {
-      defaultProps: {
-        primaryTypographyProps: {
-          variant: "body2",
-        },
-      },
-    },
-    MuiList: {
       styleOverrides: {
-        padding: {
-          padding: "0",
+        root: {
+          margin: 0,
         },
       },
     },
-    MuiInput: {
-      defaultProps: {
-        size: "small",
-        margin: "dense",
+    MuiInputBase: {
+      styleOverrides: {
+        root: {
+          fontSize: "14px",
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          fontSize: "14px",
+        },
       },
     },
     MuiTextField: {
-      defaultProps: {
-        variant: "filled",
-        size: "small",
-        margin: "dense",
-      },
-    },
-    MuiTooltip: {
-      defaultProps: {
-        arrow: true,
-      },
-    },
-    MuiToolbar: {
-      defaultProps: {
-        variant: "dense",
-      },
-    },
-    MuiAccordion: {
       styleOverrides: {
         root: {
-          "&$expanded": {
-            margin: "0",
-            boxShadow: "none",
-          },
-          "&:before": {
-            top: "0",
-          },
-          boxShadow: "none",
+          fontSize: "14px",
         },
       },
     },
-    MuiAccordionDetails: {
+    MuiToggleButtonGroup: {
       styleOverrides: {
         root: {
-          padding: "0.5rem",
+          fontSize: "14px",
         },
       },
     },
     MuiAccordionSummary: {
       styleOverrides: {
         root: {
-          padding: "0rem 0.75rem",
-          minHeight: "0",
-          "&$expanded": {
-            minHeight: "0",
-            margin: "0",
-          },
-          "&:hover": {
-            background: "#ebeeee",
-          },
-          background: "#f3f5f5",
-          color: "#303030",
-          borderBottom: "1px solid rgba(0,0,0,0.1)",
-        },
-        content: {
-          margin: "0",
-          "&$expanded": {
-            margin: "0",
+          minHeight: "50px !important",
+          "& .MuiAccordionSummary-content": {
+            margin: 0,
           },
         },
       },

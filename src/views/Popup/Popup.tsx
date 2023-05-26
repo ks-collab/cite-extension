@@ -4,10 +4,11 @@ import { AccessTokenResponse } from "models/api/response.types";
 import Home from "./Home";
 import { portUrl } from "utils/baseUrl";
 import UserBar from "./UserBar";
-import { Typography } from "@mui/material";
-import { grey } from "utils/color";
+import { Box, Typography, useTheme } from "@mui/material";
+import MainLoader from "./MainLoader";
 
 const Popup = () => {
+  const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AccessTokenResponse | undefined>(undefined);
 
@@ -36,42 +37,37 @@ const Popup = () => {
 
   return (
     <>
-      <div
-        style={{
-          lineHeight: "36px",
-          textAlign: "start",
-          display: "flex",
-          flexDirection: "row",
-          // borderTop: `1px solid ${grey[300]}`,
-          borderBottom: `1px solid ${grey[200]}`,
-        }}
-      >
-        <img
-          src="/icon-banner.webp"
-          height="28"
-          alt="Petal"
-          style={{ verticalAlign: "middle", padding: "8px 12px" }}
-        />
-        {/* <span style={{
-          fontSize: "1rem",
-          position: "relative",
-          top: "0.2rem",
-          marginLeft: "1rem"
-        }}>Petal</span> */}
-        <UserBar user={user} logout={logout} />
-      </div>
       {loading ? (
-        <div> loading...</div>
-      ) : user === undefined ? (
-        <div style={{ height: "90px", display: "flex", color: `${grey[600]}` }}>
-          <Typography sx={{ margin: "auto" }}>
-            To use the Petal Cite Web Importer, please sign in.
-          </Typography>
-        </div>
+        <MainLoader />
       ) : (
-        <div>
-          <Home cleanup={cleanup}/>
-        </div>
+        <>
+          <Box
+            sx={{
+              lineHeight: "36px",
+              textAlign: "start",
+              display: "flex",
+              flexDirection: "row",
+              borderBottom: `1px solid ${theme.grey.light}`,
+            }}
+          >
+            <img
+              src="/icon-banner.webp"
+              height="28"
+              alt="Petal"
+              style={{ verticalAlign: "middle", padding: "8px 12px" }}
+            />
+            <UserBar user={user} logout={logout} />
+          </Box>
+          {user === undefined ? (
+              <Box style={{ height: "300px", display: "flex" }}>
+                <Typography color="textSecondary" sx={{ margin: "auto" }}>
+                  To use the Petal Web Importer, please sign in.
+                </Typography>
+              </Box>
+            ) : (
+              <Home cleanup={cleanup}/>
+          )}
+        </>
       )}
     </>
   );
