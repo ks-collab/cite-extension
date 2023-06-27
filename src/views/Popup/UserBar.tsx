@@ -56,7 +56,7 @@ const UserBar = ({
   };
 
   const handleSignIn = () => {
-    window.open("https://accounts.petal.org/login?service=cite", "_blank");
+    window.open("https://cite.petal.org/login?service=cite", "_blank");
   };
 
   if (!user) {
