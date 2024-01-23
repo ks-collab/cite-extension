@@ -209,7 +209,7 @@ const Home:React.FC<Props> = ({cleanup}) => {
         const currentTabId = tabs[0].id as number;
         const currentTabUrl = tabs[0].url as string;
         setCheckingRefType(true);
-        axios.post("https://cite.petal-dev.org/api/citegen/query", {type: "article", query: currentTabUrl})
+        axios.post("https://cite.petal.org/api/citegen/query", {type: "article", query: currentTabUrl})
           .then((res) => {
           const { items } = res.data;
           const cslData = items[0].csljson;
